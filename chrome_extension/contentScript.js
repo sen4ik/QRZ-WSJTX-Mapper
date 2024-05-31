@@ -1,32 +1,22 @@
-async function fetchAdiFileCallsigns() {
-    try {
-        const response = await fetch('http://localhost:3088/file');
-        if (!response.ok) {
-            throw new Error('Network response was not ok ' + response.statusText);
+async function highlightCallSign() {
+    const callsignSpanClass = 'span.csigns.hamcall';
+
+    const adiFileCallsignsList = await fetchAdiFileCallsigns();
+    const callSignSpanElement = document.querySelector(callsignSpanClass);
+    const callSignElementText = callSignSpanElement ? callSignSpanElement.textContent.trim() : null;
+
+    if (callSignSpanElement && callSignElementText) {
+        if (adiFileCallsignsList.includes(callSignElementText)) {
+            callSignSpanElement.style.border = '2px solid lime';
+            callSignSpanElement.style.padding = '5px';
+            callSignSpanElement.style.marginBottom = '10px';
+            callSignSpanElement.style.display = 'inline-block';
+        } else {
+            callSignSpanElement.style.border = 'none';
+            callSignSpanElement.style.padding = '0';
+            callSignSpanElement.style.marginBottom = '0';
         }
-        const content = await response.text();
-        const strippedData = await stripCallData(content);
-        // document.getElementById('fileContent').textContent = strippedData.join('\n');
-        // console.log(strippedData);
-        return strippedData;
-    } catch (error) {
-        console.error('There has been a problem with your fetch operation:', error);
-        return [];
     }
 }
 
-async function stripCallData(data) {
-    const lines = data.split('\n');
-    const callSigns = [];
-
-    const callRegex = /<call:\d+>(.*?) <gridsquare/;
-
-    lines.forEach(line => {
-        const match = line.match(callRegex);
-        if (match && match[1]) { // Ensure match[1] exists before pushing
-            callSigns.push(match[1].trim()); // Trim the call sign before pushing
-        }
-    });
-
-    return callSigns;
-}
+highlightCallSign();

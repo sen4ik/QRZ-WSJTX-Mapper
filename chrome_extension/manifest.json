@@ -17,12 +17,13 @@
         "webRequest"
     ],
     "host_permissions": [
-        "*://*/*"
+        "http://localhost:3088/*",
+        "https://www.qrz.com/*"
     ],
     "content_scripts": [
         {
-            "matches": ["<all_urls>"],
-            "js": ["contentScript.js"]
+            "matches": ["*://www.qrz.com/*"],
+            "js": ["shared.js", "contentScript.js"]
         }
     ]
 }
