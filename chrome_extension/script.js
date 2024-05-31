@@ -4,16 +4,16 @@ chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
     chrome.scripting.executeScript({
         target: { tabId: tabId },
         func: async () => {
-            const callsignSpanClass = 'span.csigns.hamcall';
+            const callsignSpanClass = 'span.hamcall';
             const adiFileCallsignsList = await fetchAdiFileCallsigns();
             const callSignSpanElement = document.querySelector(callsignSpanClass);
             const callSignElementText = callSignSpanElement ? callSignSpanElement.textContent.trim() : null;
 
             if (callSignSpanElement && callSignElementText) {
                 if (adiFileCallsignsList.includes(callSignElementText)) {
-                    return `Callsign ${callSignElementText} found in the ADI file.`;
+                    return `Callsign ${callSignElementText} is found in the WSJTX ADI file.`;
                 } else {
-                    return `Callsign ${callSignElementText} is NOT found in the ADI file.`;
+                    return `Callsign ${callSignElementText} is NOT found in the WSJTX ADI file.`;
                 }
             } else {
                 return '';

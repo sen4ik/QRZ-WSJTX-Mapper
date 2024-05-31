@@ -9,12 +9,8 @@
         "default_title": "QRZ WSJT-X Mapper"
     },
     "permissions": [
-        "storage",
-        "declarativeContent",
         "scripting",
-        "tabs",
-        "activeTab",
-        "webRequest"
+        "activeTab"
     ],
     "host_permissions": [
         "http://localhost:3088/*",

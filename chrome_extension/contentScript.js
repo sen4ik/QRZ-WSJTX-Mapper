@@ -1,5 +1,5 @@
 async function highlightCallSign() {
-    const callsignSpanClass = 'span.csigns.hamcall';
+    const callsignSpanClass = 'span.hamcall';
 
     const adiFileCallsignsList = await fetchAdiFileCallsigns();
     const callSignSpanElement = document.querySelector(callsignSpanClass);
