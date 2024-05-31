@@ -6,8 +6,10 @@ async function fetchAdiFileCallsigns() {
         }
         const content = await response.text();
         const strippedData = await stripCallData(content);
+
         // document.getElementById('fileContent').textContent = strippedData.join('\n');
         // console.log(strippedData);
+
         return strippedData;
     } catch (error) {
         console.error('There has been a problem with your fetch operation:', error);
@@ -23,8 +25,8 @@ async function stripCallData(data) {
 
     lines.forEach(line => {
         const match = line.match(callRegex);
-        if (match && match[1]) { // Ensure match[1] exists before pushing
-            callSigns.push(match[1].trim()); // Trim the call sign before pushing
+        if (match && match[1]) {
+            callSigns.push(match[1].trim());
         }
     });
 
