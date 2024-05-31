@@ -9,7 +9,7 @@ const PORT = 3088;
 app.use(cors());
 
 // Path to ADI file
-const filePath = path.join('C:', 'Users', 'kn6rdd', 'AppData', 'Local', 'WSJT-X', 'wsjtx_log.adi');
+const filePath = process.env.ADI_FILE_PATH || path.join('C:', 'Users', 'kn6rdd', 'Desktop', 'wsjtx_log.adi');
 
 app.get('/file', (req, res) => {
     fs.readFile(filePath, 'utf8', (err, data) => {
