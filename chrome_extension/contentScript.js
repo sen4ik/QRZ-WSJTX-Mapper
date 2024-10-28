@@ -1,3 +1,27 @@
+// Open a connection to keep the service worker alive
+const port = chrome.runtime.connect();
+
+async function checkAndReloadCallsign() {
+    const newCallsign = await fetchCurrentCallsign();
+    if (!newCallsign) return;
+
+    // Request the last callsign from the background script
+    const lastFetchedCallsign = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "getLastCallsign" }, (response) => {
+            resolve(response);
+        });
+    });
+
+    // If the new callsign is different, update storage
+    if (newCallsign !== lastFetchedCallsign) {
+        chrome.runtime.sendMessage({ type: "setLastCallsign", callsign: newCallsign });
+        const qrzUrl = `https://www.qrz.com/db/${newCallsign}`;
+        window.location.href = qrzUrl;
+    }
+}
+
+setInterval(checkAndReloadCallsign, 1000);
+
 async function highlightCallSign() {
     const callsignSpanClass = 'span.hamcall';
 
