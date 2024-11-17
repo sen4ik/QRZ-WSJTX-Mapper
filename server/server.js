@@ -8,10 +8,11 @@ const PORT = 3088;
 // Use CORS middleware
 app.use(cors());
 
-// Path to ADI file
 const filePath = process.env.ADI_FILE_PATH || path.join('C:', 'Users', 'kn6rdd', 'AppData', 'Local', 'WSJT-X', 'wsjtx_log.adi');
 
 const dxInputLogPath = path.join(__dirname, '..', 'py', 'dx_input_log.txt');
+
+const callRegex = /<call:\d+>(.*?) <gridsquare/g;
 
 app.get('/file', (req, res) => {
     fs.readFile(filePath, 'utf8', (err, data) => {
@@ -19,7 +20,24 @@ app.get('/file', (req, res) => {
             console.error('Error reading file:', err);
             return res.status(500).send('Error reading file');
         }
-		console.log("Sending data");
+
+        const matches = [];
+        let match;
+        while ((match = callRegex.exec(data)) !== null) {
+            matches.push(match[1]);
+        }
+
+        // console.log('Extracted callsigns:', matches);
+        res.json(matches);
+    });
+});
+
+app.get('/full_file', (req, res) => {
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading file:', err);
+            return res.status(500).send('Error reading file');
+        }
         res.send(data);
     });
 });
@@ -30,7 +48,7 @@ app.get('/dx_input', (req, res) => {
             console.error('Error reading dx_input_log.txt:', err);
             return res.status(500).send('Error reading dx_input_log.txt');
         }
-        console.log("Sending DX input data");
+        // console.log("Sending DX input data");
         res.send(data);
     });
 });
