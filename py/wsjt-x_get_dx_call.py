@@ -1,4 +1,5 @@
 from pywinauto import Application, findwindows
+from datetime import datetime
 import time
 import os
 
@@ -40,7 +41,7 @@ input_field = window.child_window(auto_id="MainWindow.centralWidget.lower_panel_
 while True:
     try:
         text = input_field.get_value()
-        print(f"{text}")
+        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {text}")
 
         if text and text != previous_text:
             write_to_file(text)
