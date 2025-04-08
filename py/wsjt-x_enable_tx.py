@@ -41,9 +41,9 @@ def handle_stuck_in_report_mode(window, enable_tx_checkbox, tx_report_start_time
     current_time = time.time()
     time_in_report_mode = current_time - tx_report_start_time
     
-    # Check if we've been in report mode for more than 180 seconds
-    if time_in_report_mode > 180:
-        log_message(f"Been in report mode for {time_in_report_mode:.1f} seconds, which exceeds 180 seconds")
+    # Check if we've been in report mode for more than 90 seconds
+    if time_in_report_mode > 90:
+        log_message(f"Been in report mode for {time_in_report_mode:.1f} seconds, which exceeds 90 seconds")
         log_message("Taking action to reset stuck state...")
         
         log_message("Clicking 'Enable Tx' checkbox to stop TX...")
@@ -58,6 +58,18 @@ def handle_stuck_in_report_mode(window, enable_tx_checkbox, tx_report_start_time
         log_message("Waiting 30 seconds before resuming normal operation...")
         time.sleep(30)
         log_message("Resuming normal operation after reset.")
+
+        try:
+            tx6_button = window.child_window(
+                title="Tx 6", 
+                auto_id="MainWindow.centralWidget.lower_panel_widget.controls_stack_widget.page.QSO_controls_widget.tabWidget.qt_tabwidget_stackedwidget.tab.txb6", 
+                control_type="Button"
+            )
+            log_message("Clicking 'Tx 6' button after reset...")
+            tx6_button.click()
+            time.sleep(0.5)
+        except Exception as e:
+            log_message(f"Error clicking Tx 6 button after reset: {e}")
         
         # Return the current time to reset the timer
         return None  # Reset the timer
