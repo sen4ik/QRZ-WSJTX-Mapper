@@ -1,5 +1,5 @@
-$wsjtxPath = "C:\Program Files\wsjtx\bin\wsjtx.exe"
-$gridTrackerPath = "C:\Program Files (x86)\GridTracker\GridTracker.exe"
+$wsjtxPath = "C:\Program Files\wsjtx2.7.0\bin\wsjtx.exe"
+$gridTrackerPath = "C:\Users\kn6rdd\AppData\Local\Programs\GridTracker2\GridTracker2.exe"
 
 Start-Process -FilePath $wsjtxPath -ArgumentList "-stylesheet :/qdarkstyle/style.qss"
 Start-Sleep -Seconds 5
