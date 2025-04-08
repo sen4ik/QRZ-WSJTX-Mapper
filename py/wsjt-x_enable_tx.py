@@ -46,12 +46,9 @@ def handle_stuck_in_report_mode(window, enable_tx_checkbox, tx_report_start_time
         log_message(f"Been in report mode for {time_in_report_mode:.1f} seconds, which exceeds 180 seconds")
         log_message("Taking action to reset stuck state...")
         
-        # Click the Enable TX checkbox to uncheck it
-        log_message("Clicking 'Enable Tx' checkbox to uncheck it...")
+        log_message("Clicking 'Enable Tx' checkbox to stop TX...")
         enable_tx_checkbox.click()
-        
-        # Verify the state changed
-        time.sleep(0.5)  # Short wait for state to update
+        time.sleep(0.5)
         new_state = enable_tx_checkbox.get_toggle_state()
         if not new_state:
             log_message("Successfully disabled TX to reset from stuck state.")
@@ -188,7 +185,7 @@ def monitor_and_enable_tx():
                     
                     sending_report_radio_button_state = sending_report_radio_button.get_toggle_state()
                     if sending_report_radio_button_state:
-                        log_message("RadioButton 'txrb2' is checked.")
+                        log_message("RadioButton 'txrb2' is checked - we are in 'sending report' state")
                         
                         # Start timing if this is the first time we see it checked
                         if tx_report_start_time is None:
