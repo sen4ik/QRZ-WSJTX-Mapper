@@ -1,3 +1,6 @@
+# Set environment variable properly (this will apply to children processes)
+$env:ELECTRON_NO_ATTACH_CONSOLE = "true"
+
 $wsjtxPath = "C:\Program Files\wsjtx2.7.0\bin\wsjtx.exe"
 $gridTrackerPath = "C:\Users\kn6rdd\AppData\Local\Programs\GridTracker2\GridTracker2.exe"
 
