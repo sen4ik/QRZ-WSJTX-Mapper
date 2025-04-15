@@ -77,6 +77,10 @@ def handle_stuck_in_report_mode(window, enable_tx_checkbox, tx_report_start_time
     return tx_report_start_time  # Not stuck, return the original start time
 
 def monitor_and_enable_tx():
+    # Configuration variables that can be easily adjusted
+    TX6_TIMEOUT_SECONDS = 150  # Time before pausing due to TX6 being active too long
+    TX6_PAUSE_SECONDS = 120    # Duration of pause after a timeout
+    
     window_title_pattern = r"WSJT-X\s+.*by K1JT"
     app = None
     max_attempts = 10
@@ -84,6 +88,11 @@ def monitor_and_enable_tx():
     
     # Variables to track time in report mode
     tx_report_start_time = None  # Will be set when we first detect being in report mode
+    
+    # Variables to track tx6 button activation time
+    tx6_button_start_time = None
+    tx6_button_paused = False
+    tx6_pause_start_time = None
 
     log_message("Searching for WSJT-X application window...")
     
@@ -119,6 +128,40 @@ def monitor_and_enable_tx():
     try:
         # Main monitoring loop
         while True:
+            # Check if we're in the pause state after tx6 was active for too long
+            if tx6_button_paused:
+                current_time = time.time()
+                time_paused = current_time - tx6_pause_start_time
+                
+                if time_paused > TX6_PAUSE_SECONDS:  # If we've completed the full pause duration
+                    log_message(f"Completed {TX6_PAUSE_SECONDS}-second pause after TX6 timeout. Resuming normal operation.")
+                    tx6_button_paused = False
+                    tx6_button_start_time = None
+                    
+                    # Get a reference to the Enable Tx checkbox
+                    enable_tx_checkbox = window.child_window(
+                        title="Enable Tx", 
+                        auto_id="MainWindow.centralWidget.lower_panel_widget.autoButton", 
+                        control_type="CheckBox"
+                    )
+                    
+                    # Re-enable TX
+                    if not enable_tx_checkbox.get_toggle_state():
+                        log_message("Re-enabling TX...")
+                        enable_tx_checkbox.click()
+                        time.sleep(0.5)
+                        
+                        # Verify if state changed
+                        new_state = enable_tx_checkbox.get_toggle_state()
+                        if new_state:
+                            log_message("Successfully re-enabled TX after pause period.")
+                        else:
+                            log_message("Warning: Checkbox was clicked but did not change state.")
+                else:
+                    log_message(f"Still in pause mode. {TX6_PAUSE_SECONDS - time_paused:.1f} seconds remaining.")
+                    time.sleep(15)  # Check less frequently during pause
+                    continue
+            
             try:
                 # Get a reference to the Enable Tx checkbox using the exact identifier
                 enable_tx_checkbox = window.child_window(
@@ -137,10 +180,45 @@ def monitor_and_enable_tx():
                 # Check if Enable Tx checkbox is already checked
                 is_checked = enable_tx_checkbox.get_toggle_state()
                 
+                # Check for tx6 timeout
+                if is_checked and tx6_button_start_time is not None:
+                    current_time = time.time()
+                    time_since_tx6 = current_time - tx6_button_start_time
+                    
+                    if time_since_tx6 > TX6_TIMEOUT_SECONDS:  # If TX6 has been active for too long
+                        log_message(f"TX6 has been active for {time_since_tx6:.1f} seconds, which exceeds {TX6_TIMEOUT_SECONDS} seconds")
+                        log_message(f"Initiating {TX6_PAUSE_SECONDS}-second pause and disabling TX...")
+                        
+                        # Disable TX
+                        log_message("Clicking 'Enable Tx' checkbox to stop TX...")
+                        enable_tx_checkbox.click()
+                        time.sleep(0.5)
+                        
+                        # Verify if state changed
+                        new_state = enable_tx_checkbox.get_toggle_state()
+                        if not new_state:
+                            log_message("Successfully disabled TX for pause period.")
+                        else:
+                            log_message("Warning: Checkbox was clicked but did not change state.")
+                        
+                        # Set pause state
+                        tx6_button_paused = True
+                        tx6_pause_start_time = time.time()
+                        log_message(f"Beginning 200-second pause at {datetime.fromtimestamp(tx6_pause_start_time).strftime('%H:%M:%S')}")
+                        continue
+                
                 if is_checked:
-                    log_message("'Enable Tx' is already checked.")
+                    # log_message(".")
+                    # If TX6 timer not started yet, start it now
+                    if tx6_button_start_time is None:
+                        tx6_button_start_time = time.time()
+                        log_message(f"Started tracking TX6 button activity at {datetime.fromtimestamp(tx6_button_start_time).strftime('%H:%M:%S')}")
                 else:
                     log_message("'Enable Tx' is not checked.")
+                    # Reset TX6 timer if TX is disabled
+                    if tx6_button_start_time is not None:
+                        log_message("TX disabled, resetting TX6 timer.")
+                        tx6_button_start_time = None
                     
                     # Check if a Log QSO window is open
                     try:
@@ -173,6 +251,10 @@ def monitor_and_enable_tx():
                     tx6_button.click()
                     time.sleep(0.5)  # Give UI time to respond
                     
+                    # NEW: Start the tx6 button timer
+                    tx6_button_start_time = time.time()
+                    log_message(f"Started tracking TX6 button activity at {datetime.fromtimestamp(tx6_button_start_time).strftime('%H:%M:%S')}")
+                    
                     # Then click the Enable Tx checkbox
                     log_message("Now clicking 'Enable Tx' checkbox...")
                     enable_tx_checkbox.click()
@@ -197,7 +279,7 @@ def monitor_and_enable_tx():
                     
                     sending_report_radio_button_state = sending_report_radio_button.get_toggle_state()
                     if sending_report_radio_button_state:
-                        log_message("RadioButton 'txrb2' is checked - we are in 'sending report' state")
+                        log_message("Responding with signal report")
                         
                         # Start timing if this is the first time we see it checked
                         if tx_report_start_time is None:
@@ -208,7 +290,7 @@ def monitor_and_enable_tx():
                         tx_report_start_time = handle_stuck_in_report_mode(window, enable_tx_checkbox, tx_report_start_time)
                         
                     else:
-                        log_message("RadioButton 'txrb2' is not checked.")
+                        # log_message("...")
                         # Reset the timer if the radio button is not checked
                         if tx_report_start_time is not None:
                             log_message("No longer in report mode, resetting timer.")
