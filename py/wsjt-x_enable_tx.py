@@ -204,7 +204,7 @@ def monitor_and_enable_tx():
                         # Set pause state
                         tx6_button_paused = True
                         tx6_pause_start_time = time.time()
-                        log_message(f"Beginning 200-second pause at {datetime.fromtimestamp(tx6_pause_start_time).strftime('%H:%M:%S')}")
+                        log_message(f"Beginning {TX6_PAUSE_SECONDS}-second pause at {datetime.fromtimestamp(tx6_pause_start_time).strftime('%H:%M:%S')}")
                         continue
                 
                 if is_checked:
