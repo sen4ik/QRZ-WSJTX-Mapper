@@ -3,6 +3,11 @@ import time
 import sys
 from datetime import datetime
 
+TIME_IN_REPORT_MAX_SECONDS = 90 # Max number of seconds allowed to be in the sending signal report state
+REST_TIME_IN_SECONDS = 30 # Number of seconds to rest after 
+TX6_TIMEOUT_SECONDS = 150  # Time before pausing due to TX6 being active too long
+TX6_PAUSE_SECONDS = 120    # Duration of pause after a timeout
+
 def log_message(message):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f"{timestamp} - {message}")
@@ -41,9 +46,9 @@ def handle_stuck_in_report_mode(window, enable_tx_checkbox, tx_report_start_time
     current_time = time.time()
     time_in_report_mode = current_time - tx_report_start_time
     
-    # Check if we've been in report mode for more than 90 seconds
-    if time_in_report_mode > 90:
-        log_message(f"Been in report mode for {time_in_report_mode:.1f} seconds, which exceeds 90 seconds")
+    # Check if we've been in report mode for more than {TIME_IN_REPORT_MAX_SECONDS} seconds
+    if time_in_report_mode > TIME_IN_REPORT_MAX_SECONDS:
+        log_message(f"Been in report mode for {time_in_report_mode:.1f} seconds, which exceeds {TIME_IN_REPORT_MAX_SECONDS} seconds")
         log_message("Taking action to reset stuck state...")
         
         log_message("Clicking 'Enable Tx' checkbox to stop TX...")
@@ -55,8 +60,8 @@ def handle_stuck_in_report_mode(window, enable_tx_checkbox, tx_report_start_time
         else:
             log_message("Warning: Checkbox was clicked but did not change state.")
         
-        log_message("Waiting 30 seconds before resuming normal operation...")
-        time.sleep(30)
+        log_message("Waiting {REST_TIME_IN_SECONDS} seconds before resuming normal operation...")
+        time.sleep(REST_TIME_IN_SECONDS)
         log_message("Resuming normal operation after reset.")
 
         try:
@@ -76,11 +81,7 @@ def handle_stuck_in_report_mode(window, enable_tx_checkbox, tx_report_start_time
     
     return tx_report_start_time  # Not stuck, return the original start time
 
-def monitor_and_enable_tx():
-    # Configuration variables that can be easily adjusted
-    TX6_TIMEOUT_SECONDS = 150  # Time before pausing due to TX6 being active too long
-    TX6_PAUSE_SECONDS = 120    # Duration of pause after a timeout
-    
+def monitor_and_enable_tx():    
     window_title_pattern = r"WSJT-X\s+.*by K1JT"
     app = None
     max_attempts = 10
@@ -186,26 +187,55 @@ def monitor_and_enable_tx():
                     time_since_tx6 = current_time - tx6_button_start_time
                     
                     if time_since_tx6 > TX6_TIMEOUT_SECONDS:  # If TX6 has been active for too long
-                        log_message(f"TX6 has been active for {time_since_tx6:.1f} seconds, which exceeds {TX6_TIMEOUT_SECONDS} seconds")
-                        log_message(f"Initiating {TX6_PAUSE_SECONDS}-second pause and disabling TX...")
+                        # Check if we're in signal report state
+                        in_report_mode = False
+                        report_time_under_limit = False
                         
-                        # Disable TX
-                        log_message("Clicking 'Enable Tx' checkbox to stop TX...")
-                        enable_tx_checkbox.click()
-                        time.sleep(0.5)
+                        try:
+                            sending_report_radio_button = window.child_window(
+                                auto_id="MainWindow.centralWidget.lower_panel_widget.controls_stack_widget.page.QSO_controls_widget.tabWidget.qt_tabwidget_stackedwidget.tab.txrb2", 
+                                control_type="RadioButton"
+                            )
+                            
+                            in_report_mode = sending_report_radio_button.get_toggle_state()
+                            
+                            # If in report mode, check if we're still under the {TIME_IN_REPORT_MAX_SECONDS}-second limit
+                            if in_report_mode and tx_report_start_time is not None:
+                                time_in_report_mode = current_time - tx_report_start_time
+                                report_time_under_limit = time_in_report_mode < TIME_IN_REPORT_MAX_SECONDS  # Under {TIME_IN_REPORT_MAX_SECONDS} seconds limit
+                                # log_message(f"In report mode for {time_in_report_mode:.1f} seconds ({TIME_IN_REPORT_MAX_SECONDS}-second limit)")
+                            
+                        except Exception as e:
+                            log_message(f"Error checking report mode state: {e}")
                         
-                        # Verify if state changed
-                        new_state = enable_tx_checkbox.get_toggle_state()
-                        if not new_state:
-                            log_message("Successfully disabled TX for pause period.")
+                        # Only initiate pause if NOT in report mode OR in report mode but OVER the time limit
+                        if not (in_report_mode and report_time_under_limit):
+                            if in_report_mode:
+                                log_message(f"In report mode but exceeded time limit, proceeding with TX timeout pause")
+                            else:
+                                log_message(f"Not in report mode, proceeding with TX timeout pause")
+                                
+                            log_message(f"TX6 has been active for {time_since_tx6:.1f} seconds, which exceeds {TX6_TIMEOUT_SECONDS} seconds")
+                            log_message(f"Initiating {TX6_PAUSE_SECONDS}-second pause and disabling TX...")
+                            
+                            # Disable TX
+                            log_message("Clicking 'Enable Tx' checkbox to stop TX...")
+                            enable_tx_checkbox.click()
+                            time.sleep(0.5)
+                            
+                            # Verify if state changed
+                            new_state = enable_tx_checkbox.get_toggle_state()
+                            if not new_state:
+                                log_message("Successfully disabled TX for pause period.")
+                            else:
+                                log_message("Warning: Checkbox was clicked but did not change state.")
+                            
+                            # Set pause state
+                            tx6_button_paused = True
+                            tx6_pause_start_time = time.time()
+                            log_message(f"Beginning {TX6_PAUSE_SECONDS}-second pause at {datetime.fromtimestamp(tx6_pause_start_time).strftime('%H:%M:%S')}")
                         else:
-                            log_message("Warning: Checkbox was clicked but did not change state.")
-                        
-                        # Set pause state
-                        tx6_button_paused = True
-                        tx6_pause_start_time = time.time()
-                        log_message(f"Beginning {TX6_PAUSE_SECONDS}-second pause at {datetime.fromtimestamp(tx6_pause_start_time).strftime('%H:%M:%S')}")
-                        continue
+                            log_message(f"TX6 timeout detected but we're in report mode for less than {TIME_IN_REPORT_MAX_SECONDS} seconds ({time_in_report_mode:.1f}s), continuing without pause")
                 
                 if is_checked:
                     # log_message(".")
